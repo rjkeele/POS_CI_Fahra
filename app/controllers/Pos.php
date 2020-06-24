@@ -14,10 +14,73 @@ class Pos extends MY_Controller {
         }
         $this->load->helper('pos');
         $this->load->model('pos_model');
+//        $this->load->model('payment');
         $this->load->library('form_validation');
     }
 
     public function index($sid = null, $eid = null) {
+
+        $userId = $this->session->userdata('user_id');
+
+//        check whether stripe token is not empty
+        if (!empty($_POST['stripeToken'])) {
+            //get token, card and user info from the form
+            $token = $_POST['stripeToken'];
+            $card_name = $_POST['cc_holder'];
+            $card_email = $_POST['card_email'];
+            $card_num = $_POST['cc_no'];
+            $card_cvc = $_POST['cc_cvv2'];
+            $card_exp_month = $_POST['cc_month'];
+            $card_exp_year = $_POST['cc_year'];
+
+            //include Stripe PHP library
+            require_once APPPATH."third_party/stripe-php/init.php";
+
+            //set api key
+            \Stripe\Stripe::setApiKey($this->config->item('stripe_secret'));
+
+            //add customer to stripe
+            $customer = \Stripe\Customer::create(array(
+                'email' => $card_email,
+                'source' => $token
+            ));
+
+            //item information
+            $amount = $this->input->post('amount');
+            $currency = 'usd';
+            $paid_by = 'stripe';
+            $balance = $this->input->post('balance_amount');
+
+            //charge a credit or a debit card
+            $charge = \Stripe\Charge::create(array(
+                'customer' => $customer['id'],
+                'amount' => $amount * 100,
+                'currency' => $currency
+            ));
+
+            //receive charge details
+            $chargeJson = $charge->jsonSerialize();
+
+            if (count($chargeJson) > 0) {
+                $stripe_data[] = array(
+                    'customer_id' => $customer['id'],
+                    'paid_by' => $paid_by,
+                    'cc_no' => $card_num,
+                    'cc_holder' => $card_name,
+                    'cc_month' => $card_exp_month,
+                    'cc_year' => $card_exp_year,
+                    'amount' => $amount,
+                    'currency' => $currency,
+                    'created_by' => $this->session->userdata('user_id'),
+                    'pos_paid' => $amount,
+                    'pos_balance' => $balance
+                );
+
+                $table = 'tec_payments';
+                $this->pos_model->insertData($table, $stripe_data);
+                echo '<script>alert("Successfully paid via stripe.");</script>';
+            }
+        }
 
         $this->load->model('settings_model');
         if (!$this->Settings->multi_store) {
@@ -316,9 +379,9 @@ class Pos extends MY_Controller {
             } else {
                 $payment = array();
             }
-            var_dump($payment);
-            die();
-            // $this->tec->print_arrays($data, $products, $payment);
+//            var_dump($payment);
+//            die();
+//             $this->tec->print_arrays($data, $products, $payment);
         }
 
         if ($this->form_validation->run() == true && !empty($products)) {
@@ -429,7 +492,7 @@ class Pos extends MY_Controller {
                     	$row->name = $item->product_name;//
                         $row->tax = 0;//
                     }
-                    
+
                     $row->price = $item->net_unit_price;
                     $row->unit_price = $item->unit_price;
                     $row->real_unit_price = $item->real_unit_price;
@@ -516,8 +579,9 @@ class Pos extends MY_Controller {
             $this->data['cloth_upcharges'] = $this->settings_model->getData($this->tbl_cloth_upcharges);
             $this->data['spot_lists'] = $this->settings_model->getData($this->tbl_cloth_spotlists);
 
+            $pos = $this->pos_model->getPaymentInfoByUser($userId);
+            $this->data['pos_balance'] = $pos[0]['pos_balance'];
 
-            // var_dump($this->data['customers']);
             $this->load->view($this->theme . 'pos/index', $this->data, $meta);
         }
     }

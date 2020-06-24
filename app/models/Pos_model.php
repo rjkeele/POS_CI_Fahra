@@ -809,6 +809,17 @@ class Pos_model extends CI_Model
         }
         return false;
     }
-    
+
     /* myone to */
+    public function insertData($table, $data) {
+        $this->db->insert($table, $data);
+        return true;
+    }
+
+    public function getPaymentInfoByUser($userId) {
+        $this->db->order_by('date', 'desc');
+        $query = $this->db->get_where('tec_payments', array('created_by' => $userId), 1);
+        $result[] = $query->row_array();
+        return $result;
+    }
 }
