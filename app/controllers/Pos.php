@@ -993,7 +993,7 @@ class Pos extends MY_Controller
 
         $this->data['service'] = $service;
 
-        $test = $this->services_model->insertData(153, $service);
+        $test = $this->services_model->insertData($sale_id, $service);
 //        var_dump($test);
 //        die();
 
