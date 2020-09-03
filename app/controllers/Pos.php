@@ -4,9 +4,11 @@ if (!defined('BASEPATH')) {
     exit('No direct script access allowed');
 }
 
-class Pos extends MY_Controller {
+class Pos extends MY_Controller
+{
 
-    public function __construct() {
+    public function __construct()
+    {
         parent::__construct();
 
         if (!$this->loggedIn) {
@@ -14,19 +16,25 @@ class Pos extends MY_Controller {
         }
         $this->load->helper('pos');
         $this->load->model('pos_model');
-//        $this->load->model('payment');
+        $this->load->model('sales_model');
         $this->load->library('form_validation');
     }
 
-    public function index($sid = null, $eid = null) {
+    public function index($sid = null, $eid = null)
+    {
 
         $userId = $this->session->userdata('user_id');
+        $reference = '';
 
 //        check whether stripe token is not empty
         if (!empty($_POST['stripeToken'])) {
+
+//            var_dump($this->input->post('balance_amount'));
+//            die();
+
             //get token, card and user info from the form
             $token = $_POST['stripeToken'];
-            $card_name = $_POST['cc_holder'];
+//            $card_name = $_POST['cc_holder'];
             $card_email = $_POST['card_email'];
             $card_num = $_POST['cc_no'];
             $card_cvc = $_POST['cc_cvv2'];
@@ -34,7 +42,7 @@ class Pos extends MY_Controller {
             $card_exp_year = $_POST['cc_year'];
 
             //include Stripe PHP library
-            require_once APPPATH."third_party/stripe-php/init.php";
+            require_once APPPATH . "third_party/stripe-php/init.php";
 
             //set api key
             \Stripe\Stripe::setApiKey($this->config->item('stripe_secret'));
@@ -60,25 +68,10 @@ class Pos extends MY_Controller {
 
             //receive charge details
             $chargeJson = $charge->jsonSerialize();
-
             if (count($chargeJson) > 0) {
-                $stripe_data[] = array(
-                    'customer_id' => $customer['id'],
-                    'paid_by' => $paid_by,
-                    'cc_no' => $card_num,
-                    'cc_holder' => $card_name,
-                    'cc_month' => $card_exp_month,
-                    'cc_year' => $card_exp_year,
-                    'amount' => $amount,
-                    'currency' => $currency,
-                    'created_by' => $this->session->userdata('user_id'),
-                    'pos_paid' => $amount,
-                    'pos_balance' => $balance
-                );
 
-                $table = 'tec_payments';
-                $this->pos_model->insertData($table, $stripe_data);
-                echo '<script>alert("Successfully paid via stripe.");</script>';
+                $reference = $chargeJson['id'];
+
             }
         }
 
@@ -178,10 +171,10 @@ class Pos extends MY_Controller {
                         if ($product_details->type == 'standard') {
                             if ($product_details->quantity < $item_quantity) {
                                 $this->session->set_flashdata('error', lang("quantity_low") . ' (' .
-                                        lang('name') . ': ' . $product_details->name . ' | ' .
-                                        lang('ordered') . ': ' . $item_quantity . ' | ' .
-                                        lang('available') . ': ' . $product_details->quantity .
-                                        ')');
+                                    lang('name') . ': ' . $product_details->name . ' | ' .
+                                    lang('ordered') . ': ' . $item_quantity . ' | ' .
+                                    lang('available') . ': ' . $product_details->quantity .
+                                    ')');
                                 redirect("pos");
                             }
                         } elseif ($product_details->type == 'combo') {
@@ -190,10 +183,10 @@ class Pos extends MY_Controller {
                                 $cpr = $this->site->getProductByID($combo_item->id);
                                 if ($cpr->quantity < $item_quantity) {
                                     $this->session->set_flashdata('error', lang("quantity_low") . ' (' .
-                                            lang('name') . ': ' . $cpr->name . ' | ' .
-                                            lang('ordered') . ': ' . $item_quantity . ' x ' . $combo_item->qty . ' = ' . $item_quantity * $combo_item->qty . ' | ' .
-                                            lang('available') . ': ' . $cpr->quantity .
-                                            ') ' . $product_details->name);
+                                        lang('name') . ': ' . $cpr->name . ' | ' .
+                                        lang('ordered') . ': ' . $item_quantity . ' x ' . $combo_item->qty . ' = ' . $item_quantity * $combo_item->qty . ' | ' .
+                                        lang('available') . ': ' . $cpr->quantity .
+                                        ') ' . $product_details->name);
                                     redirect("pos");
                                 }
                             }
@@ -207,7 +200,7 @@ class Pos extends MY_Controller {
                         $dpos = strpos($discount, $percentage);
                         if ($dpos !== false) {
                             $pds = explode("%", $discount);
-                            $pr_discount = $this->tec->formatDecimal((($unit_price * (Float) ($pds[0])) / 100), 4);
+                            $pr_discount = $this->tec->formatDecimal((($unit_price * (Float)($pds[0])) / 100), 4);
                         } else {
                             $pr_discount = $this->tec->formatDecimal($discount);
                         }
@@ -261,7 +254,7 @@ class Pos extends MY_Controller {
                         'set_pc' => $set_pc
                     );
 
-                    $total += $this->tec->formatDecimal(($item_net_price * $item_quantity), 4) + $item_upcharge_cost + $item_color_cost+ $item_material_cost;
+                    $total += $this->tec->formatDecimal(($item_net_price * $item_quantity), 4) + $item_upcharge_cost + $item_color_cost + $item_material_cost;
                 }
             }
             if (empty($products)) {
@@ -275,7 +268,7 @@ class Pos extends MY_Controller {
                 $opos = strpos($order_discount_id, $percentage);
                 if ($opos !== false) {
                     $ods = explode("%", $order_discount_id);
-                    $order_discount = $this->tec->formatDecimal(((($total + $product_tax) * (Float) ($ods[0])) / 100), 4);
+                    $order_discount = $this->tec->formatDecimal(((($total + $product_tax) * (Float)($ods[0])) / 100), 4);
                 } else {
                     $order_discount = $this->tec->formatDecimal($order_discount_id);
                 }
@@ -289,7 +282,7 @@ class Pos extends MY_Controller {
                 $opos = strpos($order_tax_id, $percentage);
                 if ($opos !== false) {
                     $ots = explode("%", $order_tax_id);
-                    $order_tax = $this->tec->formatDecimal(((($total + $product_tax - $order_discount) * (Float) ($ots[0])) / 100), 4);
+                    $order_tax = $this->tec->formatDecimal(((($total + $product_tax - $order_discount) * (Float)($ots[0])) / 100), 4);
                 } else {
                     $order_tax = $this->tec->formatDecimal($order_tax_id);
                 }
@@ -374,6 +367,7 @@ class Pos extends MY_Controller {
                     'note' => $this->input->post('payment_note'),
                     'pos_paid' => $this->tec->formatDecimal($this->input->post('amount'), 4),
                     'pos_balance' => $this->tec->formatDecimal($this->input->post('balance_amount'), 4),
+                    'stripe_ref' => $reference
                 );
                 $data['paid'] = $amount;
             } else {
@@ -489,7 +483,7 @@ class Pos extends MY_Controller {
                         $row = json_decode('{}');
                         $row->id = 0;//
                         $row->code = $item->product_code;//
-                    	$row->name = $item->product_name;//
+                        $row->name = $item->product_name;//
                         $row->tax = 0;//
                     }
 
@@ -567,6 +561,7 @@ class Pos extends MY_Controller {
             $meta = array('page_title' => lang('pos'), 'bc' => $bc);
 
             $this->data['tbl_cloth_types'] = $this->tbl_cloth_types;
+
             $this->data['tbl_cloth_sub_types'] = $this->tbl_cloth_sub_types;
             $this->data['tbl_cloth_patterns'] = $this->tbl_cloth_patterns;
             $this->data['tbl_cloth_materials'] = $this->tbl_cloth_materials;
@@ -586,15 +581,17 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function editCustomer() {
-          
+    public function editCustomer()
+    {
+
         $id = $_GET['id'];
         $data = $this->pos_model->getCustomerByID($id);
         echo json_encode($data);
     }
-    
-    public function updateCustomer() {       
-        $id = $_GET['id']; 
+
+    public function updateCustomer()
+    {
+        $id = $_GET['id'];
         $data = array(
             'name' => $this->input->get('name'),
             'phone' => $this->input->get('phone'),
@@ -605,16 +602,17 @@ class Pos extends MY_Controller {
             'packing' => $this->input->get('packing'),
             'cf1' => $this->input->get('cf1'),
             'cf2' => $this->input->get('cf2'),
-            'kind_phone'    => $this->input->get('kind_phone'),       
+            'kind_phone' => $this->input->get('kind_phone'),
 
         );
         echo json_encode($data);
-        
+
         $this->pos_model->updateCustomer($id, $data);
-                 
+
     }
-    
-    public function searchCustomer($search = null) {
+
+    public function searchCustomer($search = null)
+    {
         if ($this->input->get('search')) {
             $search = $this->input->get('search');
         }
@@ -622,7 +620,8 @@ class Pos extends MY_Controller {
         echo json_encode($customers);
     }
 
-    public function get_product($code = null) {
+    public function get_product($code = null)
+    {
         $upchrges_total_cost = 0;
         $color_total_cost = 0;
         $material_total_cost = 0;
@@ -663,7 +662,8 @@ class Pos extends MY_Controller {
     }
 
     //added by itsea
-    public function addClothtoList() {
+    public function addClothtoList()
+    {
         $selectedClothType = $this->input->post('selectedClothType');
         $clothPrice = $this->input->post('clothPrice');
         $clothName = $this->input->post('clothName');
@@ -674,7 +674,8 @@ class Pos extends MY_Controller {
         $materialPrice = $this->input->post('materialPrice');
     }
 
-    public function suggestions() {
+    public function suggestions()
+    {
         $term = $this->input->get('term', true);
 
         $rows = $this->pos_model->getProductNames($term);
@@ -699,7 +700,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function registers() {
+    public function registers()
+    {
 
         $this->data['error'] = (validation_errors()) ? validation_errors() : $this->session->flashdata('error');
         $this->data['registers'] = $this->pos_model->getOpenRegisters();
@@ -708,7 +710,8 @@ class Pos extends MY_Controller {
         $this->page_construct('pos/registers', $this->data, $meta);
     }
 
-    public function open_register() {
+    public function open_register()
+    {
         if (!$this->session->userdata('store_id')) {
             $this->session->set_flashdata('warning', lang("please_select_store"));
             redirect('stores');
@@ -736,7 +739,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function close_register($user_id = null) {
+    public function close_register($user_id = null)
+    {
         if (!$this->Admin) {
             $user_id = $this->session->userdata('user_id');
         }
@@ -822,7 +826,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function ajaxproducts($category_id = null, $return = null) {
+    public function ajaxproducts($category_id = null, $return = null)
+    {
 
         if ($this->input->get('category_id')) {
             $category_id = $this->input->get('category_id');
@@ -900,11 +905,13 @@ class Pos extends MY_Controller {
         }
     }
 
-    function invoice_barcode($product_code = NULL, $bcs = 'code128', $height = 60) {
+    function invoice_barcode($product_code = NULL, $bcs = 'code128', $height = 60)
+    {
         return $this->tec->barcode($product_code, $bcs, $height);
     }
 
-    public function view($sale_id = null, $noprint = null) {
+    public function view($sale_id = null, $noprint = null)
+    {
         if ($this->input->get('id')) {
             $sale_id = $this->input->get('id');
         }
@@ -922,7 +929,7 @@ class Pos extends MY_Controller {
         $this->load->helper('text');
         $this->data['rows'] = $this->pos_model->getAllSaleItems($sale_id);
         $this->data['customer'] = $this->pos_model->getCustomerByID($inv->customer_id);
-        $this->data['store'] = $this->site->getStoreByID($inv->store_id);
+//        $this->data['store'] = $this->site->getStoreByID($inv->store_id);
         $this->data['inv'] = $inv;
         $this->data['sid'] = $sale_id;
         $this->data['noprint'] = $noprint;
@@ -932,15 +939,83 @@ class Pos extends MY_Controller {
         $this->data['printer'] = $this->site->getPrinterByID($this->Settings->printer);
         $this->data['store'] = $this->site->getStoreByID($inv->store_id);
         $this->data['page_title'] = lang("invoice");
-        
-        $this->data['invoice_id'] = '#'.$sale_id;
+        $this->data['sale'] = $this->sales_model->getSaleByID($sale_id);
+
+        $this->data['invoice_id'] = '#' . $sale_id;
         $this->data['barcode'] = $this->invoice_barcode($this->data['invoice_id'], 'code128', 20);
-        
+
         // $this->tec->print_arrays($this->data);
+//        var_dump($this->data['payments'][0]->pos_balance);
+//        die();
+
+        $this->load->model('services_model');
+        $service = array();
+        $service['TicketId'] = $sale_id;
+        $service['Location'] = 'USA';
+        $service['PrinterId'] = $this->data['printer']->id;
+        $service['CashDrawer'] = '';
+        $service['PrinterType'] = $this->data['printer']->type;
+
+        $DataToPrint = array();
+        $DataToPrint['Barcode'] = $this->data['barcode'];
+        $DataToPrint['PcsCount'] = '';
+        $DataToPrint['PickUp'] = $this->data['sale']->pickup_date;
+        $DataToPrint['Customer'] = $this->data['customer']->name;
+        $DataToPrint['Phone'] = $this->data['customer']->phone;
+        $items_array = $this->data['rows'];
+        $product_id_array = array();
+        $product_array = array();
+        $i = 0;
+        foreach ($items_array as $item) {
+            $product_id = $item->product_id;
+            $product_id_array[$i] = $product_id;
+            $product_array[$product_id] = array();
+            $product_array[$product_id]['Qty'] = 1;
+            $product_array[$product_id]['Item_Name'] = $item->product_name;
+            $product_array[$product_id]['Item_Price'] = $item->real_unit_price;
+            $i++;
+        }
+
+        $final_id_array = array_count_values($product_id_array);
+        foreach ($final_id_array as $key=>$val) {
+            $product_array[$key]['Qty'] = $val;
+        }
+        $DataToPrint['Items'] = $product_array;
+
+        $DataToPrint['Subtotal'] = $this->data['sale']->total;
+        $DataToPrint['SalesTax'] = $this->data['sale']->order_tax;
+        $DataToPrint['Eco'] = $this->data['sale']->product_tax;
+        $DataToPrint['Net'] = $this->data['sale']->grand_total;
+        $DataToPrint['Paid'] = $this->data['sale']->paid;
+        $DataToPrint['Balance'] = $this->data['payments'][0]->pos_balance;
+
+        $service['DataToPrint'] = json_encode($DataToPrint);
+
+        $this->data['service'] = $service;
+
+        $test = $this->services_model->insertData(153, $service);
+//        var_dump($test);
+//        die();
+
+//        $xml_dom = new DOMDocument();
+//        $xml_dom->encoding = 'utf-8';
+//        $xml_dom->xmlVersion = '1.0';
+//        $xml_dom->xmlStandalone = 'yes';
+//        $xml_dom->formatOutput = true;
+//
+//        $root = $xml_dom->createElement('DOCUMENT');
+//        $barcode = $xml_dom -> createElement('BARCODE');
+//        $root -> appendChild($barcode);
+//        $xml_dom->appendChild($root);
+
+//        var_dump($xml_dom);
+//        die();
+
         $this->load->view($this->theme . 'pos/' . ($this->Settings->print_img ? 'eview' : 'view'), $this->data);
     }
 
-    public function email_receipt($sale_id = null, $to = null) {
+    public function email_receipt($sale_id = null, $to = null)
+    {
         if ($this->input->post('id')) {
             $sale_id = $this->input->post('id');
         }
@@ -981,7 +1056,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function register_details() {
+    public function register_details()
+    {
 
         $register_open_time = $this->session->userdata('register_open_time');
         $this->data['error'] = (validation_errors() ? validation_errors() : $this->session->flashdata('error'));
@@ -996,7 +1072,8 @@ class Pos extends MY_Controller {
         $this->load->view($this->theme . 'pos/register_details', $this->data);
     }
 
-    public function today_sale() {
+    public function today_sale()
+    {
         if (!$this->Admin) {
             $this->session->set_flashdata('error', lang('access_denied'));
             redirect($_SERVER["HTTP_REFERER"]);
@@ -1014,19 +1091,23 @@ class Pos extends MY_Controller {
         $this->load->view($this->theme . 'pos/today_sale', $this->data);
     }
 
-    public function shortcuts() {
+    public function shortcuts()
+    {
         $this->load->view($this->theme . 'pos/shortcuts', $this->data);
     }
 
-    public function view_bill() {
+    public function view_bill()
+    {
         $this->load->view($this->theme . 'pos/view_bill', $this->data);
     }
 
-    public function promotions() {
+    public function promotions()
+    {
         $this->load->view($this->theme . 'promotions', $this->data);
     }
 
-    public function stripe_balance() {
+    public function stripe_balance()
+    {
         if (!$this->Owner) {
             return false;
         }
@@ -1034,7 +1115,8 @@ class Pos extends MY_Controller {
         return $this->stripe_payments->get_balance();
     }
 
-    public function language($lang = false) {
+    public function language($lang = false)
+    {
         if ($this->input->get('lang')) {
             $lang = $this->input->get('lang');
         }
@@ -1055,7 +1137,8 @@ class Pos extends MY_Controller {
         redirect($_SERVER["HTTP_REFERER"]);
     }
 
-    public function validate_gift_card($no) {
+    public function validate_gift_card($no)
+    {
         if ($gc = $this->pos_model->getGiftCardByNO(urldecode($no))) {
             if ($gc->expiry) {
                 if ($gc->expiry >= date('Y-m-d')) {
@@ -1071,7 +1154,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function print_register($re = null) {
+    public function print_register($re = null)
+    {
 
         if ($this->session->userdata('register_id')) {
 
@@ -1089,33 +1173,33 @@ class Pos extends MY_Controller {
             $total_cash = $cashsales->paid ? ($cashsales->paid + $register->cash_in_hand) : $register->cash_in_hand;
             $total_cash -= ($expenses->total ? $expenses->total : 0);
             $info = array(
-                (object) array('label' => lang('opened_at'), 'value' => $this->tec->hrld($register->date)),
-                (object) array('label' => lang('cash_in_hand'), 'value' => $register->cash_in_hand),
-                (object) array('label' => lang('user'), 'value' => $user->first_name . ' ' . $user->last_name . ' (' . $user->email . ')'),
-                (object) array('label' => lang('printed_at'), 'value' => $this->tec->hrld(date('Y-m-d H:i:s'))),
+                (object)array('label' => lang('opened_at'), 'value' => $this->tec->hrld($register->date)),
+                (object)array('label' => lang('cash_in_hand'), 'value' => $register->cash_in_hand),
+                (object)array('label' => lang('user'), 'value' => $user->first_name . ' ' . $user->last_name . ' (' . $user->email . ')'),
+                (object)array('label' => lang('printed_at'), 'value' => $this->tec->hrld(date('Y-m-d H:i:s'))),
             );
 
             $reg_totals = array(
-                (object) array('label' => lang('cash_sale'), 'value' => $this->tec->formatMoney($cashsales->paid ? $cashsales->paid : '0.00') . ' (' . $this->tec->formatMoney($cashsales->total ? $cashsales->total : '0.00') . ')'),
-                (object) array('label' => lang('ch_sale'), 'value' => $this->tec->formatMoney($chsales->paid ? $chsales->paid : '0.00') . ' (' . $this->tec->formatMoney($chsales->total ? $chsales->total : '0.00') . ')'),
-                (object) array('label' => lang('gc_sale'), 'value' => $this->tec->formatMoney($gcsales->paid ? $gcsales->paid : '0.00') . ' (' . $this->tec->formatMoney($gcsales->total ? $gcsales->total : '0.00') . ')'),
-                (object) array('label' => lang('cc_sale'), 'value' => $this->tec->formatMoney($ccsales->paid ? $ccsales->paid : '0.00') . ' (' . $this->tec->formatMoney($ccsales->total ? $ccsales->total : '0.00') . ')'),
-                (object) array('label' => lang('stripe'), 'value' => $this->tec->formatMoney($stripesales->paid ? $stripesales->paid : '0.00') . ' (' . $this->tec->formatMoney($stripesales->total ? $stripesales->total : '0.00') . ')'),
-                (object) array('label' => lang('other_sale'), 'value' => $this->tec->formatMoney($other_sales->paid ? $other_sales->paid : '0.00') . ' (' . $this->tec->formatMoney($other_sales->total ? $other_sales->total : '0.00') . ')'),
-                (object) array('label' => 'line', 'value' => ''),
-                (object) array('label' => lang('total_sales'), 'value' => $this->tec->formatMoney($totalsales->paid ? $totalsales->paid : '0.00') . ' (' . $this->tec->formatMoney($totalsales->total ? $totalsales->total : '0.00') . ')'),
-                (object) array('label' => lang('cash_in_hand'), 'value' => $this->tec->formatMoney($register->cash_in_hand)),
-                (object) array('label' => lang('expenses'), 'value' => $this->tec->formatMoney($expenses->total ? $expenses->total : '0.00')),
-                (object) array('label' => 'line', 'value' => ''),
-                (object) array('label' => lang('total_cash'), 'value' => $this->tec->formatMoney($total_cash)),
+                (object)array('label' => lang('cash_sale'), 'value' => $this->tec->formatMoney($cashsales->paid ? $cashsales->paid : '0.00') . ' (' . $this->tec->formatMoney($cashsales->total ? $cashsales->total : '0.00') . ')'),
+                (object)array('label' => lang('ch_sale'), 'value' => $this->tec->formatMoney($chsales->paid ? $chsales->paid : '0.00') . ' (' . $this->tec->formatMoney($chsales->total ? $chsales->total : '0.00') . ')'),
+                (object)array('label' => lang('gc_sale'), 'value' => $this->tec->formatMoney($gcsales->paid ? $gcsales->paid : '0.00') . ' (' . $this->tec->formatMoney($gcsales->total ? $gcsales->total : '0.00') . ')'),
+                (object)array('label' => lang('cc_sale'), 'value' => $this->tec->formatMoney($ccsales->paid ? $ccsales->paid : '0.00') . ' (' . $this->tec->formatMoney($ccsales->total ? $ccsales->total : '0.00') . ')'),
+                (object)array('label' => lang('stripe'), 'value' => $this->tec->formatMoney($stripesales->paid ? $stripesales->paid : '0.00') . ' (' . $this->tec->formatMoney($stripesales->total ? $stripesales->total : '0.00') . ')'),
+                (object)array('label' => lang('other_sale'), 'value' => $this->tec->formatMoney($other_sales->paid ? $other_sales->paid : '0.00') . ' (' . $this->tec->formatMoney($other_sales->total ? $other_sales->total : '0.00') . ')'),
+                (object)array('label' => 'line', 'value' => ''),
+                (object)array('label' => lang('total_sales'), 'value' => $this->tec->formatMoney($totalsales->paid ? $totalsales->paid : '0.00') . ' (' . $this->tec->formatMoney($totalsales->total ? $totalsales->total : '0.00') . ')'),
+                (object)array('label' => lang('cash_in_hand'), 'value' => $this->tec->formatMoney($register->cash_in_hand)),
+                (object)array('label' => lang('expenses'), 'value' => $this->tec->formatMoney($expenses->total ? $expenses->total : '0.00')),
+                (object)array('label' => 'line', 'value' => ''),
+                (object)array('label' => lang('total_cash'), 'value' => $this->tec->formatMoney($total_cash)),
             );
 
-            $data = (object) array(
-                        'printer' => $this->Settings->local_printers ? '' : json_encode($printer),
-                        'logo' => !empty($store->logo) ? base_url('uploads/' . $store->logo) : '',
-                        'heading' => lang('register_details'),
-                        'info' => $info,
-                        'totals' => $reg_totals,
+            $data = (object)array(
+                'printer' => $this->Settings->local_printers ? '' : json_encode($printer),
+                'logo' => !empty($store->logo) ? base_url('uploads/' . $store->logo) : '',
+                'heading' => lang('register_details'),
+                'info' => $info,
+                'totals' => $reg_totals,
             );
 
             // $this->tec->print_arrays($data);
@@ -1135,7 +1219,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function print_receipt($id, $open_drawer = false) {
+    public function print_receipt($id, $open_drawer = false)
+    {
 
         $sale = $this->pos_model->getSaleByID($id);
         $items = $this->pos_model->getAllSaleItems($id);
@@ -1148,7 +1233,8 @@ class Pos extends MY_Controller {
         $this->escpos->print_receipt($store, $sale, $items, $payments, $created_by, $open_drawer);
     }
 
-    public function receipt_img() {
+    public function receipt_img()
+    {
 
         $data = $this->input->post('img', true);
         $filename = date('Y-m-d-H-i-s-') . uniqid() . '.png';
@@ -1162,7 +1248,8 @@ class Pos extends MY_Controller {
         $this->escpos->print_img($filename, $cd);
     }
 
-    public function open_drawer() {
+    public function open_drawer()
+    {
 
         $printer = $this->site->getPrinterByID($this->Settings->printer);
         $this->load->library('escpos');
@@ -1170,7 +1257,8 @@ class Pos extends MY_Controller {
         $this->escpos->open_drawer();
     }
 
-    public function p($bo = 'order') {
+    public function p($bo = 'order')
+    {
 
         $date = date('Y-m-d H:i:s');
         $customer_id = $this->input->post('customer_id');
@@ -1209,10 +1297,10 @@ class Pos extends MY_Controller {
                     if ($product_details->type == 'standard') {
                         if ($product_details->quantity < $item_quantity) {
                             $this->session->set_flashdata('error', lang("quantity_low") . ' (' .
-                                    lang('name') . ': ' . $product_details->name . ' | ' .
-                                    lang('ordered') . ': ' . $item_quantity . ' | ' .
-                                    lang('available') . ': ' . $product_details->quantity .
-                                    ')');
+                                lang('name') . ': ' . $product_details->name . ' | ' .
+                                lang('ordered') . ': ' . $item_quantity . ' | ' .
+                                lang('available') . ': ' . $product_details->quantity .
+                                ')');
                             redirect("pos");
                         }
                     } elseif ($product_details->type == 'combo') {
@@ -1221,10 +1309,10 @@ class Pos extends MY_Controller {
                             $cpr = $this->site->getProductByID($combo_item->id);
                             if ($cpr->quantity < $item_quantity) {
                                 $this->session->set_flashdata('error', lang("quantity_low") . ' (' .
-                                        lang('name') . ': ' . $cpr->name . ' | ' .
-                                        lang('ordered') . ': ' . $item_quantity . ' x ' . $combo_item->qty . ' = ' . $item_quantity * $combo_item->qty . ' | ' .
-                                        lang('available') . ': ' . $cpr->quantity .
-                                        ') ' . $product_details->name);
+                                    lang('name') . ': ' . $cpr->name . ' | ' .
+                                    lang('ordered') . ': ' . $item_quantity . ' x ' . $combo_item->qty . ' = ' . $item_quantity * $combo_item->qty . ' | ' .
+                                    lang('available') . ': ' . $cpr->quantity .
+                                    ') ' . $product_details->name);
                                 redirect("pos");
                             }
                         }
@@ -1238,7 +1326,7 @@ class Pos extends MY_Controller {
                     $dpos = strpos($discount, $percentage);
                     if ($dpos !== false) {
                         $pds = explode("%", $discount);
-                        $pr_discount = $this->tec->formatDecimal((($unit_price * (Float) ($pds[0])) / 100), 4);
+                        $pr_discount = $this->tec->formatDecimal((($unit_price * (Float)($pds[0])) / 100), 4);
                     } else {
                         $pr_discount = $this->tec->formatDecimal($discount);
                     }
@@ -1268,22 +1356,22 @@ class Pos extends MY_Controller {
                 $product_tax += $pr_item_tax;
                 $subtotal = (($item_net_price * $item_quantity) + $pr_item_tax);
 
-                $products[] = (object) array(
-                            'product_id' => $item_id,
-                            'quantity' => $item_quantity,
-                            'unit_price' => $unit_price,
-                            'net_unit_price' => $item_net_price,
-                            'discount' => $item_discount,
-                            'comment' => $item_comment,
-                            'item_discount' => $pr_item_discount,
-                            'tax' => $tax,
-                            'item_tax' => $pr_item_tax,
-                            'subtotal' => $subtotal,
-                            'real_unit_price' => $real_unit_price,
-                            'cost' => $product_cost,
-                            'product_code' => $product_code,
-                            'product_name' => $product_name,
-                            'ordered' => $item_ordered,
+                $products[] = (object)array(
+                    'product_id' => $item_id,
+                    'quantity' => $item_quantity,
+                    'unit_price' => $unit_price,
+                    'net_unit_price' => $item_net_price,
+                    'discount' => $item_discount,
+                    'comment' => $item_comment,
+                    'item_discount' => $pr_item_discount,
+                    'tax' => $tax,
+                    'item_tax' => $pr_item_tax,
+                    'subtotal' => $subtotal,
+                    'real_unit_price' => $real_unit_price,
+                    'cost' => $product_cost,
+                    'product_code' => $product_code,
+                    'product_name' => $product_name,
+                    'ordered' => $item_ordered,
                 );
 
                 $total += $item_net_price * $item_quantity;
@@ -1300,7 +1388,7 @@ class Pos extends MY_Controller {
             $opos = strpos($order_discount_id, $percentage);
             if ($opos !== false) {
                 $ods = explode("%", $order_discount_id);
-                $order_discount = $this->tec->formatDecimal(((($total + $product_tax) * (Float) ($ods[0])) / 100), 4);
+                $order_discount = $this->tec->formatDecimal(((($total + $product_tax) * (Float)($ods[0])) / 100), 4);
             } else {
                 $order_discount = $this->tec->formatDecimal($order_discount_id);
             }
@@ -1314,7 +1402,7 @@ class Pos extends MY_Controller {
             $opos = strpos($order_tax_id, $percentage);
             if ($opos !== false) {
                 $ots = explode("%", $order_tax_id);
-                $order_tax = $this->tec->formatDecimal(((($total + $product_tax - $order_discount) * (Float) ($ots[0])) / 100), 4);
+                $order_tax = $this->tec->formatDecimal(((($total + $product_tax - $order_discount) * (Float)($ots[0])) / 100), 4);
             } else {
                 $order_tax = $this->tec->formatDecimal($order_tax_id);
             }
@@ -1329,26 +1417,26 @@ class Pos extends MY_Controller {
         $round_total = $this->tec->roundNumber($grand_total, $this->Settings->rounding);
         $rounding = $this->tec->formatDecimal(($round_total - $grand_total));
 
-        $data = (object) array('date' => $date,
-                    'customer_id' => $customer_id,
-                    'customer_name' => $customer,
-                    'total' => $this->tec->formatDecimal($total),
-                    'product_discount' => $this->tec->formatDecimal($product_discount, 4),
-                    'order_discount_id' => $order_discount_id,
-                    'order_discount' => $order_discount,
-                    'total_discount' => $total_discount,
-                    'product_tax' => $this->tec->formatDecimal($product_tax, 4),
-                    'order_tax_id' => $order_tax_id,
-                    'order_tax' => $order_tax,
-                    'total_tax' => $total_tax,
-                    'grand_total' => $grand_total,
-                    'total_items' => $this->input->post('total_items'),
-                    'total_quantity' => $this->input->post('total_quantity'),
-                    'rounding' => $rounding,
-                    'paid' => $paid,
-                    'created_by' => $this->session->userdata('user_id'),
-                    'note' => $note,
-                    'hold_ref' => $this->input->post('hold_ref'),
+        $data = (object)array('date' => $date,
+            'customer_id' => $customer_id,
+            'customer_name' => $customer,
+            'total' => $this->tec->formatDecimal($total),
+            'product_discount' => $this->tec->formatDecimal($product_discount, 4),
+            'order_discount_id' => $order_discount_id,
+            'order_discount' => $order_discount,
+            'total_discount' => $total_discount,
+            'product_tax' => $this->tec->formatDecimal($product_tax, 4),
+            'order_tax_id' => $order_tax_id,
+            'order_tax' => $order_tax,
+            'total_tax' => $total_tax,
+            'grand_total' => $grand_total,
+            'total_items' => $this->input->post('total_items'),
+            'total_quantity' => $this->input->post('total_quantity'),
+            'rounding' => $rounding,
+            'paid' => $paid,
+            'created_by' => $this->session->userdata('user_id'),
+            'note' => $note,
+            'hold_ref' => $this->input->post('hold_ref'),
         );
 
         // $this->tec->print_arrays($data, $products);
@@ -1373,7 +1461,8 @@ class Pos extends MY_Controller {
 
     /* myone from */
 
-    public function validate_sec_pin($secPin = null) {
+    public function validate_sec_pin($secPin = null)
+    {
 
         if ($this->input->get('secPin')) {
             $secPin = $this->input->get('secPin');
@@ -1388,7 +1477,8 @@ class Pos extends MY_Controller {
         }
     }
 
-    public function checkCustomer() {
+    public function checkCustomer()
+    {
 
         if ($this->input->get('cname')) {
             $cname = $this->input->get('cname');
@@ -1402,12 +1492,14 @@ class Pos extends MY_Controller {
             echo json_encode(array('success' => false));
         }
     }
-    public function printDate(){
+
+    public function printDate()
+    {
         $this->load->model('sales_model');
         $date_print = $_GET['print_date'];
-        $print_id = $_GET['print_id'];     
-           
-        $this->sales_model->updatePrintDateTick($print_id,  $date_print);
+        $print_id = $_GET['print_id'];
+
+        $this->sales_model->updatePrintDateTick($print_id, $date_print);
         // echo $date_print;
     }
     /* myone to */

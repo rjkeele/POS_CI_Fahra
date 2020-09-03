@@ -1164,7 +1164,7 @@
                             <div class="col-xs-12">
                                 <div class="form-group">
                                     <?= lang('special_requirements', 'special_requirements'); ?>
-                                    <textarea name="note" id="note" class="pa form-control kb-text"></textarea>
+                                    <textarea name="note" placeholder="<?= $pos_balance ?>" id="note" class="pa form-control kb-text"></textarea>
                                 </div>
                             </div>
                         </div>
@@ -2093,12 +2093,12 @@
             $('#cc_cvv2_val').val($('#pcc_cvv2').val());
             $('#cc_holder_val').val($('#pcc_name').val());
             pos_form$.append("<input type='hidden' name='card_email' value='" + card_email + "'/>");
-            var balance = '<?= $pos_balance ?>';
-            var current_balance = $('#balance').text();
-            var new_balance = parseFloat(balance) + parseFloat(current_balance);
-            new_balance = new_balance.toFixed(2);
-            $('#balance_val').val(new_balance);
-            $('#balance').text(toString(new_balance));
+            //var balance = '<?//= $pos_balance ?>//';
+            //var current_balance = $('#balance').text();
+            //var new_balance = parseFloat(balance) + parseFloat(current_balance);
+            //new_balance = new_balance.toFixed(2);
+            //$('#balance_val').val(new_balance);
+            //$('#balance').text(toString(new_balance));
             // alert(current_balance);
 
             $('#submit').click();
